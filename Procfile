@@ -1,1 +1,1 @@
-web: gunicorn --bind 0.0.0.0:$PORT app:app -c radar.cfg
+web: gunicorn --worker-class eventlet -w 1 app:app -c radar.cfg

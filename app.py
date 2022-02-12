@@ -4,7 +4,7 @@ import sys
 
 import flask
 from flask_socketio import SocketIO
-import os.path
+import os
 import time
 from datetime import datetime, timedelta
 #from dateutil.parser import parse
@@ -171,7 +171,7 @@ if __name__ == '__main__':
     socketio.run(
         app,
         host=radar_config["flask_host"],
-        port=radar_config["flask_port"],
+        port=int(os.environ.get('PORT', 5000))) #radar_config["flask_port"],
     )
 
     try:
