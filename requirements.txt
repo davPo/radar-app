@@ -3,7 +3,8 @@ certifi==2021.10.8
 click==8.0.3
 Flask==2.0.2
 Flask-SocketIO==5.1.1
-gunicorn==20.1.0
+https://github.com/benoitc/gunicorn/archive/ff58e0c6da83d5520916bc4cc109a529258d76e1.zip#egg=gunicorn==20.1.0
+eventlet
 itsdangerous==2.0.1
 Jinja2==3.0.3
 MarkupSafe==2.0.1

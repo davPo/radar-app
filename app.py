@@ -146,7 +146,7 @@ if __name__ == '__main__':
     logging.getLogger().addHandler(web_handler)
 
     # Read in config file.
-    radar_config = read_config(args.config)
+    radar_config = read_config(args.config) #args.config
     # Quit if we cannot read a valid config file.
     if radar_config == None:
         logging.critical("Could not read configuration data. Exiting")
@@ -168,10 +168,12 @@ if __name__ == '__main__':
         "Starting Radar Server on: http://%s:%d/"
         % (radar_config["flask_host"], radar_config["flask_port"])
     )
+    print(radar_config)
     socketio.run(
         app,
         host=radar_config["flask_host"],
-        port=int(os.environ.get('PORT', 5000))) #radar_config["flask_port"],
+        # port=radar_config["flask_port"] # local
+        port = int(os.environ.get('PORT', 5000)) # heroku 
     )
 
     try:

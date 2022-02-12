@@ -38,7 +38,7 @@ function serverSettingsUpdate(data){
     // $('#bearingCustomColor').val(radar_config.bearing_custom_color);
     
     // Update version
-    $('#chasemapper_version').html(radar_config.version);
+    $('#version').html(radar_config.version);
 }
 
 function clientSettingsUpdate(){
