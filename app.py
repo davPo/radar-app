@@ -21,7 +21,7 @@ app.config["TEMPLATES_AUTO_RELOAD"] = True
 app.jinja_env.auto_reload = True
 
 # SocketIO instance
-socketio = SocketIO(app)
+socketio = SocketIO(app,logger=True, engineio_logger=True)
 
 # Global stores of data.
 
@@ -74,13 +74,11 @@ class WebHandler(logging.Handler):
                 socketio.emit("log_event", log_data, namespace="/radar")
 
 def handle_new_data(data= [(34,4010), (129,1267)]):
-    # projeter les points dans CRS
     echoes = { "positions": [] }
     echoes['positions']=data   
-    # echoes['positions'].append([46.35, 6.65])
     # Update the web client.
     flask_emit_event("data_event", echoes)
-    logging.debug("Push echoes.")
+    logging.info("Push radar data : " + str(data) )
 
 def new_data_callback(data):
     """ Handle a DAQ input message """
@@ -142,8 +140,10 @@ if __name__ == '__main__':
     logging.getLogger("socketio").setLevel(logging.ERROR)
     logging.getLogger("engineio").setLevel(logging.ERROR)
 
-    web_handler = WebHandler()
-    logging.getLogger().addHandler(web_handler)
+  #  web_handler = WebHandler()
+  #  logging.getLogger().addHandler(web_handler)
+
+# create console handler and set level to debug
 
     # Read in config file.
     radar_config = read_config(args.config) #args.config
@@ -168,11 +168,11 @@ if __name__ == '__main__':
         "Starting Radar Server on: http://%s:%d/"
         % (radar_config["flask_host"], radar_config["flask_port"])
     )
-    print(radar_config)
+    logging.debug(radar_config)
     socketio.run(
         app,
         host=radar_config["flask_host"],
-        # port=radar_config["flask_port"] # local
+        #port=radar_config["flask_port"] # local
         port = int(os.environ.get('PORT', 5000)) # heroku 
     )
 
