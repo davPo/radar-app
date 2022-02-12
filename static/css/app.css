@@ -1,0 +1,30 @@
+
+h1 {
+    font-size: 2em; color: green; text-align: center;
+}
+
+.btnStyle {
+    background-color: #4D90FE; 
+    background-image: -moz-linear-gradient(center top , #4D90FE, #4787ED); 
+    border: 1px solid #3079ED; 
+    color: #FFFFFF;
+     padding: 4px;
+     margin-top: 4px;
+     margin-bottom: 4px;
+     width:100%
+    }
+    
+    .lblStyle {
+    color: red;
+     padding: 4px;
+     margin-top: 4px;
+     margin-bottom: 4px;
+    width: 100%;
+    font-weight: bold;
+    }
+
+
+    .circle {
+        background: #0000ff;
+        border-radius: 50%;
+      }

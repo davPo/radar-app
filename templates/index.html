@@ -1,0 +1,358 @@
+<!--
+
+-->
+
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Radar</title>
+  <meta charset="utf-8" />
+  <link href="{{ url_for('static', filename='css/leaflet.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/jquery-ui.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/Leaflet.PolylineMeasure.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/font-awesome.min.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/app.css') }}" rel="stylesheet">
+
+  <script src="{{ url_for('static', filename='js/socket.io.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/jquery-3.3.1.min.js')}}"></script>
+  <script src="{{ url_for('static', filename='js/jquery-ui.min.js')}}"></script>
+  <script src="{{ url_for('static', filename='js/leaflet.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/Leaflet.PolylineMeasure.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/easy-button.js') }}"></script>
+  <!-- Custom  -->
+  <script src="{{ url_for('static', filename='js/settings.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/graticule.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/radar_points.js') }}"></script>
+
+  <style>
+    html,
+    body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+    }
+
+    #map {
+      height: 100%;
+    }
+  </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+
+  <script type="text/javascript" charset="utf-8">
+    // Leaflet map instance.
+    var map;
+
+    // Home position marker
+    var home_marker = 'NONE';
+
+    // Home Icon.
+    var homeIcon = L.icon({
+      iconUrl: '/static/img/antenna-green.png',
+      iconSize: [26, 34],
+      iconAnchor: [13, 34]
+    });
+
+    var radar_home;
+
+
+    // Socket.IO Settings
+    var namespace = '/radar';
+    // Socket.IO instance.
+    var socket;
+
+    $(document).ready(function () {
+
+
+        // Connect to the Socket.IO server.
+            // The connection URL has the following format:
+            //     http[s]://<domain>:<port>[/<namespace>]
+        socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port + namespace);
+
+
+        // Grab the System config on startup.
+        // Refer to config.py for the contents of the configuration blob.
+        $.ajax({
+              url: "/get_config",
+              dataType: 'json',
+              async: false, // Yes, this is deprecated...
+              success: function(data) {
+                serverSettingsUpdate(data);
+              }
+        });
+
+        // Handler for further settings updates supplied by the server
+        // (i.e. when another client makes a change)
+        socket.on('server_settings_update', function(data){
+            serverSettingsUpdate(data);
+        });
+
+        // Add handlers for various text fields.
+        // Use the jquery on-changed call for text entry fields,
+        // so they only fire after they lose focus.
+    
+        // Handlers for range ring settings.
+        $("#ringQuantity").change(function(){
+            updateRangeRings();
+        });
+        $("#ringSpacing").change(function(){
+            updateRangeRings();
+        });
+        $("#ringWeight").change(function(){
+            updateRangeRings();
+        });
+        $("#ringColorSelect").change(function(){
+            updateRangeRings();
+        });
+        $("#ringCustomColor").change(function(){
+            updateRangeRings();
+        });
+
+               // New Radar data event handler.
+            // We will get one of these mesages with every acquisition
+            socket.on('data_event', function(data) {
+              handleRadarPoints(data);
+            });
+
+
+           // Radar home position
+           radar_home = [radar_config.default_lat, radar_config.default_lon];
+
+
+
+      //
+      // LEAFLET MAP SETUP
+      //
+      // Setup a basic Leaflet map
+      map = L.map('map').setView(radar_home, 8);
+
+      // Add OSM Map Layer
+      var osm_map = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      }).addTo(map);
+
+      // Add OSM Topo Map Layer
+      var osm_topo_map = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://wiki.openstreetmap.org/wiki/OpenTopoMap">OpenTopoMap</a> contributors'
+      });
+
+      var map_layers = { 'OSM': osm_map, 'OpenTopo': osm_topo_map };
+
+      // Add Offline map layers, if we have any.
+      // for (var i = 0, len = radar_config.offline_tile_layers.length; i < len; i++) {
+      //           var _layer_name = radar_config.offline_tile_layers[i];
+      //           map_layers['Offline - ' + _layer_name] = L.tileLayer(location.protocol + '//' + document.domain + ':' + location.port + '/tiles/'+_layer_name+'/{z}/{x}/{y}.png');
+      //       }
+
+      // measurements
+      L.control.polylineMeasure({
+          position: 'topleft',
+          unit: 'metres',
+          showClearControl: true,
+          showBearings: true,            
+      }).addTo(map);
+  
+
+      // Add layer selection control (top right).
+      map.addControl(new L.Control.Layers(map_layers));
+
+      L.easyButton('fa-car', function (btn, map) {
+        $('input:radio[name=autoFollow]').val(['car']);
+      }, 'Follow Chase Car', 'followCarButton', {
+        position: 'topright'
+      }
+      ).addTo(map);
+
+      map.zoomControl.setPosition('topright');
+
+      		// Add our station location marker.
+		home_marker = L.marker([radar_config.default_lat, radar_config.default_lon, radar_config.default_alt],
+			{title: 'Station Radar', icon: homeIcon}
+			).addTo(map);
+
+      // radar
+      var radarbeam = {
+        "type": "LineString",
+        "coordinates": [
+          [radar_home[1], radar_home[0]],
+          [radar_home[1], radar_home[0]]
+        ]
+      };
+
+       // draw radar's "bulls-eye"
+  // with alternating border thickness
+      var rings = [];
+      [1000, 5000, 10000, 20000].forEach(function (r) {
+        rings.push(
+          L.circle(
+            radar_home, {
+            radius: r,
+            fill: false,
+            weight: r % 5000 == 0 ? 1.75 : 0.75,
+            color: '#808080'
+          }
+          ).addTo(map)
+        );
+      });
+
+      var xy1 = map.options.crs.project(L.latLng(radar_home));
+
+      var radius = 30000;
+      var right = L.point(xy1).add([radius, 0]),
+        left = L.point(xy1).subtract([radius, 0]),
+        top = L.point(xy1).add([0, radius]),
+        bottom = L.point(xy1).subtract([0, radius]);
+
+      var crosshairs = [
+        L.polyline(
+          [map.options.crs.unproject(left), map.options.crs.unproject(right)],
+          { weight: 1.75, color: '#808080' }
+        ).addTo(map),
+        L.polyline(
+          [map.options.crs.unproject(top), map.options.crs.unproject(bottom)],
+          { weight: 1.75, color: '#808080' }
+        ).addTo(map)
+      ];
+
+      // cross hairs
+      [45, 135, 225, 315].forEach(function (angle) {
+        crosshairs.push(
+          L.polyline([
+            map.options.crs.unproject(L.point([
+              xy1.x + Math.sin(angle * Math.PI / 180) * radius * 1.2,
+              xy1.y + Math.cos(angle * Math.PI / 180) * radius * 1.2
+            ])),
+            map.options.crs.unproject(L.point([
+              xy1.x + Math.sin(angle * Math.PI / 180) * radius * 0.1,
+              xy1.y + Math.cos(angle * Math.PI / 180) * radius * 0.1
+            ]))
+          ],
+            { weight: 0.75, color: '#808080' }
+          ).addTo(map)
+        );
+      });
+
+      var anglelabels = [
+        L.polyline(
+          [map.options.crs.unproject(left), map.options.crs.unproject(left)],
+          { weight: 0.1, color: '#fffff', opacity: 0 }
+        ).addTo(map).bindTooltip(
+          '<b>270° </b>',
+          { permanent: true, opacity: 0.7, direction: 'left' }
+        ).openTooltip(),
+        L.polyline(
+          [map.options.crs.unproject(right), map.options.crs.unproject(right)],
+          { weight: 0.1, color: '#fffff', opacity: 0 }
+        ).addTo(map).bindTooltip(
+          '<b> 90°</b>',
+          { permanent: true, opacity: 0.7, direction: 'right' }
+        ).openTooltip(),
+        L.polyline(
+          [map.options.crs.unproject(top), map.options.crs.unproject(top)],
+          { weight: 0.1, color: '#fffff', opacity: 0 }
+        ).addTo(map).bindTooltip(
+          '<b>0°</b>',
+          { permanent: true, opacity: 0.7, direction: 'top' }
+        ).openTooltip(),
+        L.polyline(
+          [map.options.crs.unproject(bottom), map.options.crs.unproject(bottom)],
+          { weight: 0.1, color: '#fffff', opacity: 0 }
+        ).addTo(map).bindTooltip(
+          '<b>180°</b>',
+          { permanent: true, opacity: 0.7, direction: 'bottom' }
+        ).openTooltip()
+      ];
+
+var radar = L.geoJSON(
+    radarbeam, {
+        onEachFeature : function(feature, layer) {
+            var arclength = 2;
+            var sumangle = 360;
+
+            // sector is the slice of circle we'll use as a "beam shadow"
+            // aswell use it to test point-in-polygon for aircraft icon fade-out
+            var sector = {
+                type:"Polygon",
+                coordinates: [ [
+                    feature.coordinates[0], feature.coordinates[1],
+                    feature.coordinates[1], feature.coordinates[0]
+                ] ]
+            };
+
+            var beamshadow = L.geoJSON(
+                sector, {
+                    style: function(feature){
+                        // use an extra-classname if any special styling
+                        // needs are required
+                        return {
+                            opacity:0.75,
+                            color: '#109856',
+                            weight:0.2,
+                            className:'radar-hand'
+                        }
+                    }
+                }
+            ).addTo(map);
+
+            setInterval(function(){
+                // animate "radar beam"
+                if (sumangle >= 360) {
+                    sumangle = 0;
+                } else {
+                    sumangle += arclength;
+                }
+                var beamlatlngs = layer.getLatLngs(),
+                    beamshadowlatlngs = beamshadow.getLayers()[0].getLatLngs();
+
+                // calculate a new location for the beam linestring.
+
+                beamlatlngs[1] = map.options.crs.unproject(
+                    L.point([
+                        xy1.x + Math.sin(sumangle * Math.PI / 180) * radius,
+                        xy1.y + Math.cos(sumangle * Math.PI / 180) * radius
+                    ])
+                );
+
+                // and a new location for the trailing corner of the beam shadow
+
+                beamshadowlatlngs[0][1] = map.options.crs.unproject(
+                    L.point([
+                        xy1.x +
+                            Math.sin(
+                                (sumangle-5*arclength) * Math.PI/180
+                            ) * radius,
+                        xy1.y +
+                            Math.cos(
+                                (sumangle-5*arclength) * Math.PI/180
+                            ) * radius
+                    ])
+                );
+
+                var next = [
+                    beamshadowlatlngs[0][0], beamlatlngs[1],
+                    beamshadowlatlngs[0][1], beamshadowlatlngs[0][0]
+                ];
+                beamshadow.getLayers()[0].setLatLngs(next);
+                layer.setLatLngs(beamlatlngs).bringToFront();
+            }, (radar_config.radar_period*5));  // intervall 75ms for a 15s turn
+        },
+        style: function(feature) {
+            return {color: '#109856', weight: 3, opacity:0.5}
+        }
+
+
+    }
+).addTo(map);
+
+
+
+    });
+  </script>
+</head>
+
+<body>
+  <div id="map" class="sidebar-map"></div>
+  
+</body>
+
+</html>
