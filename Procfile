@@ -1,1 +1,1 @@
-web: gunicorn --worker-class eventlet -w 1 app:app -c radar.cfg
+web: gunicorn --worker-class eventlet -w 1 app:app
