@@ -21,7 +21,7 @@ app.config["TEMPLATES_AUTO_RELOAD"] = True
 app.jinja_env.auto_reload = True
 
 # SocketIO instance
-socketio = SocketIO(app,logger=True, engineio_logger=True)
+socketio = SocketIO(app,logger=True, engineio_logger=True, port=int(os.environ.get('PORT', 5001)))
 
 # Global stores of data.
 
@@ -173,7 +173,7 @@ if __name__ == '__main__':
         app,
         host=radar_config["flask_host"],
         #port=radar_config["flask_port"] # local
-        port = int(os.environ.get('PORT', 5000)) # heroku 
+        port = int(os.environ.get('PORT', 5001)) # heroku 
     )
 
     try:
