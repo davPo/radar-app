@@ -20,6 +20,7 @@ var radar_config = {
 
 function serverSettingsUpdate(data){
     // Accept a json blob of settings data from the client, and update our local store.
+    console.log(data)
     radar_config = data;
     // Update a few fields based on this data.
   

@@ -14,7 +14,8 @@
   <link href="{{ url_for('static', filename='css/font-awesome.min.css') }}" rel="stylesheet">
   <link href="{{ url_for('static', filename='css/app.css') }}" rel="stylesheet">
 
-  <script src="{{ url_for('static', filename='js/socket.io.min.js') }}"></script>
+  <!-- <script src="{{ url_for('static', filename='js/socket.io.min.js') }}"></script> -->
+  <script src="{{ url_for('static', filename='js/socket.io.js') }}"></script>
   <script src="{{ url_for('static', filename='js/jquery-3.3.1.min.js')}}"></script>
   <script src="{{ url_for('static', filename='js/jquery-ui.min.js')}}"></script>
   <script src="{{ url_for('static', filename='js/leaflet.js') }}"></script>
@@ -67,8 +68,8 @@
         // Connect to the Socket.IO server.
             // The connection URL has the following format:
             //     http[s]://<domain>:<port>[/<namespace>]
-     //   socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port + namespace);
-        socket = io.connect(window.location.protocol + '//' + document.domain + ':' + location.port + namespace);   
+        socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port + namespace); // local
+       // socket = io.connect(window.location.protocol + '//' + document.domain + ':' + location.port + namespace);   
         // Grab the System config on startup.
         // Refer to config.py for the contents of the configuration blob.
         $.ajax({
@@ -76,6 +77,7 @@
               dataType: 'json',
               async: false, // Yes, this is deprecated...
               success: function(data) {
+                console.log( data ); // debug
                 serverSettingsUpdate(data);
               }
         });
@@ -83,7 +85,6 @@
         // Handler for further settings updates supplied by the server
         // (i.e. when another client makes a change)
         socket.on('server_settings_update', function(data){
-            console.log( data ); // debug
             serverSettingsUpdate(data);
         });
 
@@ -111,6 +112,7 @@
                // New Radar data event handler.
             // We will get one of these mesages with every acquisition
             socket.on('data_event', function(data) {
+              console.log( data ); // debug
               handleRadarPoints(data);
             });
 

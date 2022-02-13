@@ -21,8 +21,8 @@ app.config["TEMPLATES_AUTO_RELOAD"] = True
 app.jinja_env.auto_reload = True
 
 # SocketIO instance
-socketio = SocketIO(app) #,logger=True, engineio_logger=True, port=int(os.environ.get('PORT', 5001)))
-socketio.init_app(app, cors_allowed_origins="*")
+socketio = SocketIO(app)
+# socketio.init_app(app, cors_allowed_origins="*")
 # Global stores of data.
 
 # These settings are shared between server and all clients, and are updated dynamically.
@@ -140,10 +140,10 @@ if __name__ == '__main__':
     logging.getLogger("socketio").setLevel(logging.ERROR)
     logging.getLogger("engineio").setLevel(logging.ERROR)
 
-  #  web_handler = WebHandler()
-  #  logging.getLogger().addHandler(web_handler)
+   # web_handler = WebHandler()
+   # logging.getLogger().addHandler(web_handler)
 
-# create console handler and set level to debug
+    # create console handler and set level to debug
 
     # Read in config file.
     radar_config = read_config(args.config) #args.config
@@ -169,8 +169,8 @@ if __name__ == '__main__':
         % (radar_config["flask_host"], radar_config["flask_port"])
     )
     logging.debug(radar_config)
-    # socketio.run( app, host=radar_config["flask_host"],  port=radar_config["flask_port"]) # local
-    socketio.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 8000)), debug=True) # heroku
+    socketio.run( app, host=radar_config["flask_host"],  port=radar_config["flask_port"], debug=True) # local
+    # socketio.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 8000)), debug=True) # heroku
 
     try:
         daq_listener.close()
