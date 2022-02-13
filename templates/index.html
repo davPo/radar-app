@@ -68,7 +68,7 @@
             // The connection URL has the following format:
             //     http[s]://<domain>:<port>[/<namespace>]
      //   socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port + namespace);
-        socket = io.connect(location.protocol + '//' + document.domain  + namespace);
+        socket = io.connect(window.location.protocol + '//' + document.domain + ':' + location.port + namespace);   
         // Grab the System config on startup.
         // Refer to config.py for the contents of the configuration blob.
         $.ajax({
@@ -83,6 +83,7 @@
         // Handler for further settings updates supplied by the server
         // (i.e. when another client makes a change)
         socket.on('server_settings_update', function(data){
+            console.log( data ); // debug
             serverSettingsUpdate(data);
         });
 
