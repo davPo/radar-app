@@ -67,8 +67,8 @@
         // Connect to the Socket.IO server.
             // The connection URL has the following format:
             //     http[s]://<domain>:<port>[/<namespace>]
-        socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port + namespace);
-
+     //   socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port + namespace);
+        socket = io.connect(location.protocol + '//' + document.domain  + namespace);
         // Grab the System config on startup.
         // Refer to config.py for the contents of the configuration blob.
         $.ajax({
